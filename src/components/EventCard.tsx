@@ -27,12 +27,12 @@ export const EventCard = ({
   price = 0,
 }: EventCardProps) => {
   return (
-    <Card className="overflow-hidden transition-all hover:shadow-lg">
+    <Card className="overflow-hidden transition-all hover:shadow-lg flex flex-col h-full">
       <CardHeader>
         <div className="flex items-start justify-between">
           <Badge variant="secondary" className="mb-2">{category}</Badge>
           {price > 0 ? (
-            <span className="font-semibold">${price}</span>
+            <span className="font-semibold">₹{price}</span>
           ) : (
             <Badge variant="outline">Free</Badge>
           )}
@@ -41,7 +41,7 @@ export const EventCard = ({
         <CardDescription className="line-clamp-2">{description}</CardDescription>
       </CardHeader>
       
-      <CardContent className="space-y-2">
+      <CardContent className="space-y-2 flex-1">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Calendar className="h-4 w-4" />
           <span>{date}</span>
@@ -60,7 +60,7 @@ export const EventCard = ({
         </div>
       </CardContent>
       
-      <CardFooter>
+      <CardFooter className="mt-auto">
         <Button className="w-full">Register Now</Button>
       </CardFooter>
     </Card>
