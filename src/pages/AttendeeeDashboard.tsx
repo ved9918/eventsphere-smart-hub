@@ -3,9 +3,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Calendar, Download, Star, TrendingUp } from "lucide-react";
+import { useState } from "react";
+import { TicketQRCode } from "@/components/TicketQRCode";
+import { generateTicketQRData } from "@/lib/supabase";
 
 const AttendeeeDashboard = () => {
+  const [selectedTicket, setSelectedTicket] = useState<typeof registeredEvents[0] | null>(null);
+  const [isTicketDialogOpen, setIsTicketDialogOpen] = useState(false);
+
   const userInfo = {
     name: "John Doe",
     email: "john.doe@example.com",
@@ -108,9 +115,16 @@ const AttendeeeDashboard = () => {
                         </div>
                         <p className="text-xs text-muted-foreground">Ticket ID: {event.ticketId}</p>
                       </div>
-                      <Button variant="outline" size="sm">
+                       <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          setSelectedTicket(event);
+                          setIsTicketDialogOpen(true);
+                        }}
+                      >
                         <Download className="mr-2 h-4 w-4" />
-                        Download Ticket
+                        View Ticket
                       </Button>
                     </div>
                   ))}
@@ -151,6 +165,26 @@ const AttendeeeDashboard = () => {
             </Card>
           </TabsContent>
         </Tabs>
+
+        <Dialog open={isTicketDialogOpen} onOpenChange={setIsTicketDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Your Event Ticket</DialogTitle>
+            </DialogHeader>
+            {selectedTicket && (
+              <TicketQRCode
+                eventTitle={selectedTicket.title}
+                ticketCode={selectedTicket.ticketId}
+                eventDate={selectedTicket.date}
+                qrData={generateTicketQRData(
+                  selectedTicket.title,
+                  selectedTicket.ticketId,
+                  selectedTicket.date
+                )}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
