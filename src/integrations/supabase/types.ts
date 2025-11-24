@@ -14,13 +14,140 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      events: {
+        Row: {
+          category: string
+          created_at: string | null
+          date: string
+          description: string | null
+          host_id: string
+          id: string
+          image_url: string | null
+          location: string
+          max_attendees: number
+          price: number
+          status: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          date: string
+          description?: string | null
+          host_id: string
+          id?: string
+          image_url?: string | null
+          location: string
+          max_attendees: number
+          price?: number
+          status?: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          date?: string
+          description?: string | null
+          host_id?: string
+          id?: string
+          image_url?: string | null
+          location?: string
+          max_attendees?: number
+          price?: number
+          status?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          email: string
+          full_name: string
+          id: string
+          role: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          full_name: string
+          id?: string
+          role: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          full_name?: string
+          id?: string
+          role?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      registrations: {
+        Row: {
+          attendee_id: string
+          event_id: string
+          id: string
+          payment_status: string
+          registered_at: string | null
+          ticket_code: string
+        }
+        Insert: {
+          attendee_id: string
+          event_id: string
+          id?: string
+          payment_status?: string
+          registered_at?: string | null
+          ticket_code: string
+        }
+        Update: {
+          attendee_id?: string
+          event_id?: string
+          id?: string
+          payment_status?: string
+          registered_at?: string | null
+          ticket_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registrations_attendee_id_fkey"
+            columns: ["attendee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registrations_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_ticket_code: { Args: never; Returns: string }
     }
     Enums: {
       [_ in never]: never

@@ -3,9 +3,48 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { EventImageUpload } from "@/components/EventImageUpload";
 import { Plus, Users, Calendar, Download, Clock, TrendingUp } from "lucide-react";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 const HostDashboard = () => {
+  const { toast } = useToast();
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [newEvent, setNewEvent] = useState({
+    title: "",
+    description: "",
+    date: "",
+    location: "",
+    category: "",
+    maxAttendees: "",
+    price: "",
+    imageUrl: "",
+  });
+
+  const handleCreateEvent = () => {
+    // TODO: Implement actual event creation with Supabase
+    toast({
+      title: "Event created",
+      description: "Your event has been created successfully",
+    });
+    setIsCreateDialogOpen(false);
+    setNewEvent({
+      title: "",
+      description: "",
+      date: "",
+      location: "",
+      category: "",
+      maxAttendees: "",
+      price: "",
+      imageUrl: "",
+    });
+  };
+
   const userInfo = {
     name: "Sarah Johnson",
     email: "sarah.johnson@example.com",
@@ -70,10 +109,107 @@ const HostDashboard = () => {
         </div>
 
         <div className="mb-6 flex gap-4">
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            Create New Event
-          </Button>
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                Create New Event
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Create New Event</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="title">Event Title</Label>
+                  <Input
+                    id="title"
+                    value={newEvent.title}
+                    onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+                    placeholder="Tech Innovation Summit 2024"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={newEvent.description}
+                    onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+                    placeholder="Describe your event..."
+                    rows={4}
+                  />
+                </div>
+
+                <EventImageUpload
+                  onImageUploaded={(url) => setNewEvent({ ...newEvent, imageUrl: url })}
+                  currentImageUrl={newEvent.imageUrl}
+                />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="date">Date & Time</Label>
+                    <Input
+                      id="date"
+                      type="datetime-local"
+                      value={newEvent.date}
+                      onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="category">Category</Label>
+                    <Input
+                      id="category"
+                      value={newEvent.category}
+                      onChange={(e) => setNewEvent({ ...newEvent, category: e.target.value })}
+                      placeholder="Technology, Business, etc."
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="location">Location</Label>
+                  <Input
+                    id="location"
+                    value={newEvent.location}
+                    onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
+                    placeholder="Convention Center, City"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="maxAttendees">Max Attendees</Label>
+                    <Input
+                      id="maxAttendees"
+                      type="number"
+                      value={newEvent.maxAttendees}
+                      onChange={(e) => setNewEvent({ ...newEvent, maxAttendees: e.target.value })}
+                      placeholder="500"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="price">Price ($)</Label>
+                    <Input
+                      id="price"
+                      type="number"
+                      step="0.01"
+                      value={newEvent.price}
+                      onChange={(e) => setNewEvent({ ...newEvent, price: e.target.value })}
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+
+                <Button onClick={handleCreateEvent} className="w-full">
+                  Create Event
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
 
         <Tabs defaultValue="events" className="space-y-4">
