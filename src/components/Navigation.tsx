@@ -1,6 +1,8 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Calendar, LayoutDashboard, LogIn } from "lucide-react";
+import { Calendar, LayoutDashboard, LogIn, LogOut } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface NavigationProps {
   variant?: "landing" | "authenticated";
@@ -8,6 +10,26 @@ interface NavigationProps {
 }
 
 export const Navigation = ({ variant = "landing", userRole }: NavigationProps) => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast({
+        title: "Error signing out",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Signed out",
+        description: "You have been signed out successfully",
+      });
+      navigate("/");
+    }
+  };
+
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-sm">
       <div className="container flex h-16 items-center justify-between">
@@ -40,7 +62,10 @@ export const Navigation = ({ variant = "landing", userRole }: NavigationProps) =
                   Dashboard
                 </Button>
               </Link>
-              <Button variant="outline">Sign Out</Button>
+              <Button variant="outline" onClick={handleSignOut}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign Out
+              </Button>
             </>
           )}
         </div>

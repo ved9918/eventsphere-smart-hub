@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       events: {
         Row: {
+          approval_status: string
           category: string
           created_at: string | null
           date: string
@@ -31,6 +32,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          approval_status?: string
           category: string
           created_at?: string | null
           date: string
@@ -46,6 +48,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          approval_status?: string
           category?: string
           created_at?: string | null
           date?: string
@@ -76,7 +79,6 @@ export type Database = {
           email: string
           full_name: string
           id: string
-          role: string
           updated_at: string | null
           user_id: string
         }
@@ -85,7 +87,6 @@ export type Database = {
           email: string
           full_name: string
           id?: string
-          role: string
           updated_at?: string | null
           user_id: string
         }
@@ -94,7 +95,6 @@ export type Database = {
           email?: string
           full_name?: string
           id?: string
-          role?: string
           updated_at?: string | null
           user_id?: string
         }
@@ -142,15 +142,54 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
       generate_ticket_code: { Args: never; Returns: string }
+      get_admin_analytics: {
+        Args: never
+        Returns: {
+          active_attendees: number
+          approved_events: number
+          pending_events: number
+          total_registrations: number
+          total_revenue: number
+          total_users: number
+        }[]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "host" | "attendee"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -277,6 +316,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "host", "attendee"],
+    },
   },
 } as const

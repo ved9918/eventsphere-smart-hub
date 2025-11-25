@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 import Index from "./pages/Index";
 import Events from "./pages/Events";
 import Auth from "./pages/Auth";
@@ -23,9 +24,30 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/events" element={<Events />} />
           <Route path="/auth" element={<Auth />} />
-          <Route path="/dashboard/attendee" element={<AttendeeeDashboard />} />
-          <Route path="/dashboard/host" element={<HostDashboard />} />
-          <Route path="/dashboard/admin" element={<AdminDashboard />} />
+          <Route 
+            path="/dashboard/attendee" 
+            element={
+              <ProtectedRoute>
+                <AttendeeeDashboard />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/dashboard/host" 
+            element={
+              <ProtectedRoute requiredRole="host">
+                <HostDashboard />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/dashboard/admin" 
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminDashboard />
+              </ProtectedRoute>
+            } 
+          />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
