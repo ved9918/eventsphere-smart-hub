@@ -1,41 +1,155 @@
+import { useState, useEffect } from "react";
 import { Navigation } from "@/components/Navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, Calendar, TrendingUp, DollarSign } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Users, Calendar, TrendingUp, DollarSign, CheckCircle, XCircle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+
+interface PendingEvent {
+  id: string;
+  title: string;
+  host_id: string;
+  date: string;
+  approval_status: string;
+  profiles?: {
+    full_name: string;
+  };
+}
+
+interface Analytics {
+  total_users: number;
+  approved_events: number;
+  pending_events: number;
+  total_registrations: number;
+  active_attendees: number;
+  total_revenue: number;
+}
 
 const AdminDashboard = () => {
-  const stats = [
+  const { toast } = useToast();
+  const [analytics, setAnalytics] = useState<Analytics | null>(null);
+  const [pendingEvents, setPendingEvents] = useState<PendingEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      // Fetch analytics
+      const { data: analyticsData, error: analyticsError } = await supabase
+        .rpc('get_admin_analytics');
+
+      if (analyticsError) throw analyticsError;
+      if (analyticsData && analyticsData.length > 0) {
+        setAnalytics(analyticsData[0]);
+      }
+
+      // Fetch pending events
+      const { data: eventsData, error: eventsError } = await supabase
+        .from('events')
+        .select(`
+          id,
+          title,
+          host_id,
+          date,
+          approval_status,
+          profiles!events_host_id_fkey (
+            full_name
+          )
+        `)
+        .eq('approval_status', 'pending')
+        .order('created_at', { ascending: false });
+
+      if (eventsError) throw eventsError;
+      setPendingEvents(eventsData || []);
+    } catch (error: any) {
+      toast({
+        title: "Error fetching data",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApproval = async (eventId: string, approved: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('events')
+        .update({ approval_status: approved ? 'approved' : 'rejected' })
+        .eq('id', eventId);
+
+      if (error) throw error;
+
+      toast({
+        title: approved ? "Event approved" : "Event rejected",
+        description: `Event has been ${approved ? 'approved' : 'rejected'} successfully`,
+      });
+
+      fetchData();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const stats = analytics ? [
     {
       title: "Total Users",
-      value: "12,543",
+      value: analytics.total_users.toString(),
       change: "+12.5%",
       icon: Users,
     },
     {
-      title: "Active Events",
-      value: "287",
+      title: "Approved Events",
+      value: analytics.approved_events.toString(),
       change: "+8.2%",
       icon: Calendar,
     },
     {
       title: "Total Revenue",
-      value: "$542,891",
+      value: `₹${analytics.total_revenue.toLocaleString()}`,
       change: "+23.1%",
       icon: DollarSign,
     },
     {
-      title: "Growth Rate",
-      value: "94.7%",
+      title: "Active Attendees",
+      value: analytics.active_attendees.toString(),
       change: "+4.3%",
       icon: TrendingUp,
     },
-  ];
+  ] : [];
 
-  const recentEvents = [
-    { name: "Tech Innovation Summit 2024", host: "Sarah Johnson", status: "Approved", attendees: 487 },
-    { name: "Digital Marketing Workshop", host: "Mike Chen", status: "Approved", attendees: 234 },
-    { name: "Art & Culture Festival", host: "Emma Wilson", status: "Pending", attendees: 1250 },
-  ];
+  const eventStatusData = analytics ? [
+    { name: 'Approved', value: analytics.approved_events, color: '#10b981' },
+    { name: 'Pending', value: analytics.pending_events, color: '#f59e0b' },
+  ] : [];
+
+  const registrationData = analytics ? [
+    { name: 'Total Registrations', value: analytics.total_registrations },
+    { name: 'Active Attendees', value: analytics.active_attendees },
+  ] : [];
+
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
@@ -64,71 +178,104 @@ const AdminDashboard = () => {
           ))}
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-6 lg:grid-cols-2 mb-6">
           <Card>
             <CardHeader>
-              <CardTitle>Recent Events</CardTitle>
-              <CardDescription>Latest event submissions requiring review</CardDescription>
+              <CardTitle>Event Status Distribution</CardTitle>
+              <CardDescription>Overview of event approval status</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {recentEvents.map((event) => (
-                  <div
-                    key={event.name}
-                    className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"
+              <ResponsiveContainer width="100%" height={250}>
+                <PieChart>
+                  <Pie
+                    data={eventStatusData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={(entry) => `${entry.name}: ${entry.value}`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
                   >
-                    <div className="space-y-1">
-                      <h3 className="font-semibold">{event.name}</h3>
-                      <p className="text-sm text-muted-foreground">Host: {event.host}</p>
-                      <p className="text-sm text-muted-foreground">{event.attendees} registered</p>
-                    </div>
-                    <Badge variant={event.status === "Approved" ? "secondary" : "outline"}>
-                      {event.status}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
+                    {eventStatusData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Top Feedback Themes</CardTitle>
-              <CardDescription>AI-analyzed user feedback summary</CardDescription>
+              <CardTitle>User Engagement</CardTitle>
+              <CardDescription>Registration and attendance metrics</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="rounded-lg bg-muted/50 p-4">
-                <div className="mb-2 flex items-center justify-between">
-                  <h3 className="font-semibold">User Experience</h3>
-                  <Badge>Positive</Badge>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Users love the intuitive interface and easy registration process
-                </p>
-              </div>
-              
-              <div className="rounded-lg bg-muted/50 p-4">
-                <div className="mb-2 flex items-center justify-between">
-                  <h3 className="font-semibold">Event Discovery</h3>
-                  <Badge variant="secondary">Suggestion</Badge>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Requests for more filtering options and advanced search
-                </p>
-              </div>
-              
-              <div className="rounded-lg bg-muted/50 p-4">
-                <div className="mb-2 flex items-center justify-between">
-                  <h3 className="font-semibold">Mobile Experience</h3>
-                  <Badge>Positive</Badge>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Mobile responsiveness praised across all devices
-                </p>
-              </div>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={registrationData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="hsl(var(--primary))" />
+                </BarChart>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Pending Event Approvals</CardTitle>
+            <CardDescription>Events awaiting your review</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {pendingEvents.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No pending events for approval
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {pendingEvents.map((event) => (
+                  <div
+                    key={event.id}
+                    className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"
+                  >
+                    <div className="space-y-1 flex-1">
+                      <h3 className="font-semibold">{event.title}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Host: {event.profiles?.full_name || "Unknown"}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Date: {new Date(event.date).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="default"
+                        onClick={() => handleApproval(event.id, true)}
+                      >
+                        <CheckCircle className="h-4 w-4 mr-1" />
+                        Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleApproval(event.id, false)}
+                      >
+                        <XCircle className="h-4 w-4 mr-1" />
+                        Reject
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navigation } from "@/components/Navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,32 +8,119 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [role, setRole] = useState<"attendee" | "host">("attendee");
+  const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast({
-      title: "Login successful!",
-      description: `Logging in as ${role}...`,
+  useEffect(() => {
+    // Redirect if already logged in
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        redirectToDashboard(session.user.id);
+      }
     });
-    setTimeout(() => {
-      navigate(`/dashboard/${role}`);
-    }, 1000);
+  }, []);
+
+  const redirectToDashboard = async (userId: string) => {
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+
+    if (roles && roles.length > 0) {
+      if (roles.some(r => r.role === "admin")) {
+        navigate("/dashboard/admin");
+      } else if (roles.some(r => r.role === "host")) {
+        navigate("/dashboard/host");
+      } else {
+        navigate("/dashboard/attendee");
+      }
+    } else {
+      navigate("/dashboard/attendee");
+    }
   };
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Account created!",
-      description: `Welcome to EventSphere as a ${role}!`,
-    });
-    setTimeout(() => {
-      navigate(`/dashboard/${role}`);
-    }, 1000);
+    setLoading(true);
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Login successful!",
+        description: "Welcome back to EventSphere",
+      });
+
+      if (data.user) {
+        await redirectToDashboard(data.user.id);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Login failed",
+        description: error.message || "Invalid credentials",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+          },
+          emailRedirectTo: `${window.location.origin}/`,
+        },
+      });
+
+      if (error) throw error;
+
+      // Assign the selected role (attendee is assigned by default trigger, add host if selected)
+      if (data.user && role === "host") {
+        await supabase.from("user_roles").insert({
+          user_id: data.user.id,
+          role: "host",
+        });
+      }
+
+      toast({
+        title: "Account created!",
+        description: "Welcome to EventSphere",
+      });
+
+      if (data.user) {
+        await redirectToDashboard(data.user.id);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Signup failed",
+        description: error.message || "Could not create account",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -62,6 +149,8 @@ const Auth = () => {
                       id="login-email" 
                       type="email" 
                       placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       required 
                     />
                   </div>
@@ -71,25 +160,14 @@ const Auth = () => {
                     <Input 
                       id="login-password" 
                       type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
                       required 
                     />
                   </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="login-role">Login as</Label>
-                    <Select value={role} onValueChange={(value: any) => setRole(value)}>
-                      <SelectTrigger id="login-role">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="attendee">Attendee</SelectItem>
-                        <SelectItem value="host">Event Host</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
                   
-                  <Button type="submit" className="w-full">
-                    Sign In
+                  <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? "Signing in..." : "Sign In"}
                   </Button>
                 </form>
               </TabsContent>
@@ -100,17 +178,22 @@ const Auth = () => {
                     <Label htmlFor="signup-name">Full Name</Label>
                     <Input 
                       id="signup-name" 
+                      type="text" 
                       placeholder="John Doe"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
                       required 
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="signup-email">Email</Label>
                     <Input 
                       id="signup-email" 
                       type="email" 
                       placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       required 
                     />
                   </div>
@@ -120,14 +203,17 @@ const Auth = () => {
                     <Input 
                       id="signup-password" 
                       type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      minLength={6}
                       required 
                     />
                   </div>
-
+                  
                   <div className="space-y-2">
-                    <Label htmlFor="signup-role">I want to</Label>
-                    <Select value={role} onValueChange={(value: any) => setRole(value)}>
-                      <SelectTrigger id="signup-role">
+                    <Label htmlFor="role">I want to</Label>
+                    <Select value={role} onValueChange={(value: "attendee" | "host") => setRole(value)}>
+                      <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -137,8 +223,8 @@ const Auth = () => {
                     </Select>
                   </div>
                   
-                  <Button type="submit" className="w-full">
-                    Create Account
+                  <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? "Creating account..." : "Create Account"}
                   </Button>
                 </form>
               </TabsContent>

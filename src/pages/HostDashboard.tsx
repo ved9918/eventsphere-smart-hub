@@ -9,8 +9,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { EventImageUpload } from "@/components/EventImageUpload";
 import { Plus, Users, Calendar, Download, Clock, TrendingUp } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const HostDashboard = () => {
   const { toast } = useToast();
@@ -26,23 +27,56 @@ const HostDashboard = () => {
     imageUrl: "",
   });
 
-  const handleCreateEvent = () => {
-    // TODO: Implement actual event creation with Supabase
-    toast({
-      title: "Event created",
-      description: "Your event has been created successfully",
-    });
-    setIsCreateDialogOpen(false);
-    setNewEvent({
-      title: "",
-      description: "",
-      date: "",
-      location: "",
-      category: "",
-      maxAttendees: "",
-      price: "",
-      imageUrl: "",
-    });
+  const handleCreateEvent = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!profile) throw new Error("Profile not found");
+
+      const { error } = await supabase.from('events').insert({
+        title: newEvent.title,
+        description: newEvent.description,
+        date: newEvent.date,
+        location: newEvent.location,
+        category: newEvent.category,
+        max_attendees: parseInt(newEvent.maxAttendees),
+        price: parseFloat(newEvent.price),
+        image_url: newEvent.imageUrl,
+        host_id: profile.id,
+        approval_status: 'pending'
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Event submitted",
+        description: "Your event has been submitted for admin approval",
+      });
+      setIsCreateDialogOpen(false);
+      setNewEvent({
+        title: "",
+        description: "",
+        date: "",
+        location: "",
+        category: "",
+        maxAttendees: "",
+        price: "",
+        imageUrl: "",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error creating event",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
   const userInfo = {
