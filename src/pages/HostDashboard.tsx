@@ -1,4 +1,3 @@
-import { Navigation } from "@/components/Navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,11 +9,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { EventImageUpload } from "@/components/EventImageUpload";
 import { Plus, Users, Calendar, Download, Clock, TrendingUp } from "lucide-react";
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { User as SupabaseUser } from "@supabase/supabase-js";
+import { ProfileDropdown } from "@/components/ProfileDropdown";
 
 const HostDashboard = () => {
   const { toast } = useToast();
+  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [profile, setProfile] = useState<{ full_name: string; email: string } | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newEvent, setNewEvent] = useState({
     title: "",
@@ -27,9 +31,38 @@ const HostDashboard = () => {
     imageUrl: "",
   });
 
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchUserProfile(session.user.id);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchUserProfile(session.user.id);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const fetchUserProfile = async (userId: string) => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('full_name, email')
+      .eq('user_id', userId)
+      .single();
+    
+    if (data) {
+      setProfile(data);
+    }
+  };
+
   const handleCreateEvent = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
       const { data: profile } = await supabase
@@ -79,13 +112,6 @@ const HostDashboard = () => {
     }
   };
 
-  const userInfo = {
-    name: "Sarah Johnson",
-    email: "sarah.johnson@example.com",
-    role: "Event Host",
-    eventsHosted: 12,
-  };
-
   const myEvents = [
     {
       title: "Tech Innovation Summit 2024",
@@ -114,32 +140,29 @@ const HostDashboard = () => {
 
   return (
     <div className="min-h-screen">
-      <Navigation variant="authenticated" userRole="host" />
+      <nav className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-sm">
+        <div className="container flex h-16 items-center justify-between">
+          <Link to="/" className="flex items-center space-x-2">
+            <Calendar className="h-6 w-6" />
+            <span className="text-xl font-bold">EventSphere</span>
+          </Link>
+
+          <div className="flex items-center gap-4">
+            <Link to="/events">
+              <Button variant="ghost">Events</Button>
+            </Link>
+            <Link to="/dashboard/host">
+              <Button variant="ghost">Dashboard</Button>
+            </Link>
+            <ProfileDropdown user={user} />
+          </div>
+        </div>
+      </nav>
       
       <div className="container py-8">
-        <div className="mb-8 flex items-start justify-between">
-          <div>
-            <h1 className="text-4xl font-bold">Host Dashboard</h1>
-            <p className="text-muted-foreground">Manage your events, {userInfo.name}!</p>
-          </div>
-          
-          <Card className="w-64">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Host Profile</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              <div>
-                <p className="font-semibold">{userInfo.name}</p>
-                <p className="text-muted-foreground">{userInfo.email}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Role: {userInfo.role}</p>
-              </div>
-              <div>
-                <p className="font-semibold text-primary">{userInfo.eventsHosted} Events Hosted</p>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold">Host Dashboard</h1>
+          <p className="text-muted-foreground">Manage your events, {profile?.full_name || 'User'}!</p>
         </div>
 
         <div className="mb-6 flex gap-4">
