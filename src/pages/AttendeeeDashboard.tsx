@@ -1,23 +1,52 @@
-import { Navigation } from "@/components/Navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Calendar, Download, Star, TrendingUp } from "lucide-react";
-import { useState } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Calendar, Download, Star, TrendingUp, User } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { TicketQRCode } from "@/components/TicketQRCode";
 import { generateTicketQRData } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
+import { User as SupabaseUser } from "@supabase/supabase-js";
+import { ProfileDropdown } from "@/components/ProfileDropdown";
 
 const AttendeeeDashboard = () => {
+  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [profile, setProfile] = useState<{ full_name: string; email: string } | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<typeof registeredEvents[0] | null>(null);
   const [isTicketDialogOpen, setIsTicketDialogOpen] = useState(false);
 
-  const userInfo = {
-    name: "John Doe",
-    email: "john.doe@example.com",
-    role: "Attendee",
-    interests: ["Technology", "Business", "Arts"],
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchUserProfile(session.user.id);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchUserProfile(session.user.id);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const fetchUserProfile = async (userId: string) => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('full_name, email')
+      .eq('user_id', userId)
+      .single();
+    
+    if (data) {
+      setProfile(data);
+    }
   };
 
   const registeredEvents = [
@@ -50,36 +79,32 @@ const AttendeeeDashboard = () => {
 
   return (
     <div className="min-h-screen">
-      <Navigation variant="authenticated" userRole="attendee" />
+      <nav className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-sm">
+        <div className="container flex h-16 items-center justify-between">
+          <Link to="/" className="flex items-center space-x-2">
+            <Calendar className="h-6 w-6" />
+            <span className="text-xl font-bold">EventSphere</span>
+          </Link>
+
+          <div className="flex items-center gap-4">
+            <Link to="/events">
+              <Button variant="ghost">Events</Button>
+            </Link>
+            <Link to="/dashboard/attendee">
+              <Button variant="ghost">
+                <TrendingUp className="mr-2 h-4 w-4" />
+                Dashboard
+              </Button>
+            </Link>
+            <ProfileDropdown user={user} />
+          </div>
+        </div>
+      </nav>
       
       <div className="container py-8">
-        <div className="mb-8 flex items-start justify-between">
-          <div>
-            <h1 className="text-4xl font-bold">Attendee Dashboard</h1>
-            <p className="text-muted-foreground">Welcome back, {userInfo.name}!</p>
-          </div>
-          
-          <Card className="w-64">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">User Profile</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              <div>
-                <p className="font-semibold">{userInfo.name}</p>
-                <p className="text-muted-foreground">{userInfo.email}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Role: {userInfo.role}</p>
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {userInfo.interests.map((interest) => (
-                  <Badge key={interest} variant="secondary" className="text-xs">
-                    {interest}
-                  </Badge>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold">Attendee Dashboard</h1>
+          <p className="text-muted-foreground">Welcome back, {profile?.full_name || 'User'}!</p>
         </div>
 
         <Tabs defaultValue="events" className="space-y-4">
