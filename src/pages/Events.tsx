@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
-import { Navigate } from "react-router-dom";
-import { Navigation } from "@/components/Navigation";
+import { Navigate, Link } from "react-router-dom";
 import { EventCard } from "@/components/EventCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Filter } from "lucide-react";
+import { Search, Filter, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { User } from "@supabase/supabase-js";
+import { ProfileDropdown } from "@/components/ProfileDropdown";
 
 interface Event {
   id: string;
@@ -25,6 +25,7 @@ interface Event {
 const Events = () => {
   const { toast } = useToast();
   const [user, setUser] = useState<User | null>(null);
+  const [userRole, setUserRole] = useState<"attendee" | "host" | "admin">("attendee");
   const [authLoading, setAuthLoading] = useState(true);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,16 +36,42 @@ const Events = () => {
     // Check auth status
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
-      setAuthLoading(false);
+      if (session?.user) {
+        fetchUserRole(session.user.id);
+      } else {
+        setAuthLoading(false);
+      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
-      setAuthLoading(false);
+      if (session?.user) {
+        fetchUserRole(session.user.id);
+      } else {
+        setAuthLoading(false);
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const fetchUserRole = async (userId: string) => {
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+
+    if (roles && roles.length > 0) {
+      if (roles.some(r => r.role === "admin")) {
+        setUserRole("admin");
+      } else if (roles.some(r => r.role === "host")) {
+        setUserRole("host");
+      } else {
+        setUserRole("attendee");
+      }
+    }
+    setAuthLoading(false);
+  };
 
   useEffect(() => {
     if (user) {
@@ -98,7 +125,24 @@ const Events = () => {
 
   return (
     <div className="min-h-screen">
-      <Navigation variant="authenticated" userRole="attendee" />
+      <nav className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-sm">
+        <div className="container flex h-16 items-center justify-between">
+          <Link to="/" className="flex items-center space-x-2">
+            <Calendar className="h-6 w-6" />
+            <span className="text-xl font-bold">EventSphere</span>
+          </Link>
+
+          <div className="flex items-center gap-4">
+            <Link to="/events">
+              <Button variant="ghost">Events</Button>
+            </Link>
+            <Link to={`/dashboard/${userRole}`}>
+              <Button variant="ghost">Dashboard</Button>
+            </Link>
+            <ProfileDropdown user={user} />
+          </div>
+        </div>
+      </nav>
       
       <div className="bg-gradient-to-b from-background to-muted/20 py-20">
         <div className="container">

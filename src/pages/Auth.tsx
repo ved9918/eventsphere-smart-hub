@@ -89,20 +89,13 @@ const Auth = () => {
         options: {
           data: {
             full_name: fullName,
+            selected_role: role, // Pass the selected role in metadata
           },
           emailRedirectTo: `${window.location.origin}/`,
         },
       });
 
       if (error) throw error;
-
-      // Assign the selected role (attendee is assigned by default trigger, add host if selected)
-      if (data.user && role === "host") {
-        await supabase.from("user_roles").insert({
-          user_id: data.user.id,
-          role: "host",
-        });
-      }
 
       toast({
         title: "Account created!",
