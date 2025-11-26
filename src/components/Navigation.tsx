@@ -62,10 +62,6 @@ export const Navigation = ({ variant = "landing", userRole }: NavigationProps) =
                   Dashboard
                 </Button>
               </Link>
-              <Button variant="outline" onClick={handleSignOut}>
-                <LogOut className="mr-2 h-4 w-4" />
-                Sign Out
-              </Button>
             </>
           )}
         </div>
