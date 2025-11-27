@@ -22,6 +22,10 @@ interface Event {
   image_url?: string;
 }
 
+interface Registration {
+  event_id: string;
+}
+
 const Events = () => {
   const { toast } = useToast();
   const [user, setUser] = useState<User | null>(null);
@@ -31,6 +35,8 @@ const Events = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [registrations, setRegistrations] = useState<Set<string>>(new Set());
+  const [profileId, setProfileId] = useState<string | null>(null);
 
   useEffect(() => {
     // Check auth status
@@ -70,14 +76,27 @@ const Events = () => {
         setUserRole("attendee");
       }
     }
+    
+    // Fetch profile ID
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("user_id", userId)
+      .single();
+    
+    if (profile) {
+      setProfileId(profile.id);
+    }
+    
     setAuthLoading(false);
   };
 
   useEffect(() => {
-    if (user) {
+    if (user && profileId) {
       fetchEvents();
+      fetchRegistrations();
     }
-  }, [user]);
+  }, [user, profileId]);
 
   const fetchEvents = async () => {
     setLoading(true);
@@ -98,6 +117,65 @@ const Events = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchRegistrations = async () => {
+    if (!profileId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('registrations')
+        .select('event_id')
+        .eq('attendee_id', profileId);
+
+      if (error) throw error;
+      const registeredEventIds = new Set(data?.map(r => r.event_id) || []);
+      setRegistrations(registeredEventIds);
+    } catch (error: any) {
+      console.error("Error fetching registrations:", error);
+    }
+  };
+
+  const handleRegister = async (eventId: string) => {
+    if (!profileId) {
+      toast({
+        title: "Error",
+        description: "Profile not found. Please complete your profile first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { data: ticketData, error: ticketError } = await supabase
+        .rpc('generate_ticket_code');
+
+      if (ticketError) throw ticketError;
+
+      const { error } = await supabase
+        .from('registrations')
+        .insert({
+          event_id: eventId,
+          attendee_id: profileId,
+          ticket_code: ticketData,
+          payment_status: 'pending'
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Successfully registered!",
+        description: "Check your dashboard for ticket details.",
+      });
+
+      setRegistrations(prev => new Set(prev).add(eventId));
+    } catch (error: any) {
+      toast({
+        title: "Registration failed",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
@@ -197,6 +275,7 @@ const Events = () => {
             {filteredEvents.map((event) => (
               <EventCard
                 key={event.id}
+                eventId={event.id}
                 title={event.title}
                 description={event.description}
                 date={new Date(event.date).toLocaleDateString()}
@@ -206,6 +285,8 @@ const Events = () => {
                 attendees={0}
                 maxAttendees={event.max_attendees}
                 price={event.price}
+                isRegistered={registrations.has(event.id)}
+                onRegister={() => handleRegister(event.id)}
               />
             ))}
           </div>

@@ -63,7 +63,7 @@ const Index = () => {
         
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {featuredEvents.map((event, index) => (
-            <EventCard key={index} {...event} />
+            <EventCard key={index} eventId={`featured-${index}`} {...event} />
           ))}
         </div>
       </section>
