@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
-import { Navigation } from "@/components/Navigation";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Users, Calendar, TrendingUp, DollarSign, CheckCircle, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { User as SupabaseUser } from "@supabase/supabase-js";
 import { useToast } from "@/hooks/use-toast";
+import { ProfileDropdown } from "@/components/ProfileDropdown";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 interface PendingEvent {
@@ -30,13 +32,45 @@ interface Analytics {
 
 const AdminDashboard = () => {
   const { toast } = useToast();
+  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [profile, setProfile] = useState<{ full_name: string; email: string } | null>(null);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [pendingEvents, setPendingEvents] = useState<PendingEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchUserProfile(session.user.id);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchUserProfile(session.user.id);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
     fetchData();
   }, []);
+
+  const fetchUserProfile = async (userId: string) => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('full_name, email')
+      .eq('user_id', userId)
+      .single();
+    
+    if (data) {
+      setProfile(data);
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -153,12 +187,29 @@ const AdminDashboard = () => {
 
   return (
     <div className="min-h-screen">
-      <Navigation variant="authenticated" userRole="admin" />
+      <nav className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-sm">
+        <div className="container flex h-16 items-center justify-between">
+          <Link to="/" className="flex items-center space-x-2">
+            <Calendar className="h-6 w-6" />
+            <span className="text-xl font-bold">EventSphere</span>
+          </Link>
+
+          <div className="flex items-center gap-4">
+            <Link to="/events">
+              <Button variant="ghost">Events</Button>
+            </Link>
+            <Link to="/dashboard/admin">
+              <Button variant="ghost">Dashboard</Button>
+            </Link>
+            <ProfileDropdown user={user} />
+          </div>
+        </div>
+      </nav>
       
       <div className="container py-8">
         <div className="mb-8">
           <h1 className="text-4xl font-bold">Admin Dashboard</h1>
-          <p className="text-muted-foreground">System overview and management</p>
+          <p className="text-muted-foreground">System overview and management, {profile?.full_name || 'Admin'}!</p>
         </div>
 
         <div className="mb-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
