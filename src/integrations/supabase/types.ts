@@ -75,26 +75,47 @@ export type Database = {
       }
       profiles: {
         Row: {
+          area_of_interest: string | null
+          city: string | null
           created_at: string | null
           email: string
           full_name: string
           id: string
+          motivation: string | null
+          preferred_event_type: string | null
+          profile_completed: boolean | null
+          profile_picture_url: string | null
+          role_type: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          area_of_interest?: string | null
+          city?: string | null
           created_at?: string | null
           email: string
           full_name: string
           id?: string
+          motivation?: string | null
+          preferred_event_type?: string | null
+          profile_completed?: boolean | null
+          profile_picture_url?: string | null
+          role_type?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          area_of_interest?: string | null
+          city?: string | null
           created_at?: string | null
           email?: string
           full_name?: string
           id?: string
+          motivation?: string | null
+          preferred_event_type?: string | null
+          profile_completed?: boolean | null
+          profile_picture_url?: string | null
+          role_type?: string | null
           updated_at?: string | null
           user_id?: string
         }

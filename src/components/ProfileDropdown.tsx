@@ -11,16 +11,23 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { User as UserIcon, LogOut } from "lucide-react";
+import { User as UserIcon, LogOut, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { ProfileCard } from "./ProfileCard";
+import { ProfileSetupDialog } from "./ProfileSetupDialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface Profile {
   full_name: string;
   email: string;
+  role_type?: string;
+  area_of_interest?: string;
+  preferred_event_type?: string;
+  motivation?: string;
+  city?: string;
+  profile_picture_url?: string;
+  profile_completed?: boolean;
 }
 
 interface UserRole {
@@ -33,6 +40,8 @@ export const ProfileDropdown = ({ user }: { user: User | null }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [roles, setRoles] = useState<UserRole[]>([]);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isSetupOpen, setIsSetupOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -46,7 +55,7 @@ export const ProfileDropdown = ({ user }: { user: User | null }) => {
     
     const { data, error } = await supabase
       .from('profiles')
-      .select('full_name, email')
+      .select('*')
       .eq('user_id', user.id)
       .single();
 
@@ -56,6 +65,11 @@ export const ProfileDropdown = ({ user }: { user: User | null }) => {
     }
     
     setProfile(data);
+    
+    // Show setup dialog if profile is not complete
+    if (data && !data.profile_completed) {
+      setIsSetupOpen(true);
+    }
   };
 
   const fetchUserRoles = async () => {
@@ -92,6 +106,17 @@ export const ProfileDropdown = ({ user }: { user: User | null }) => {
 
   if (!user || !profile) return null;
 
+  const handleEditClick = () => {
+    setIsProfileOpen(false);
+    setIsEditMode(true);
+    setIsSetupOpen(true);
+  };
+
+  const handleSetupComplete = () => {
+    fetchUserProfile();
+    setIsEditMode(false);
+  };
+
   const initials = profile.full_name
     .split(' ')
     .map(n => n[0])
@@ -104,7 +129,7 @@ export const ProfileDropdown = ({ user }: { user: User | null }) => {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="relative h-10 w-10 rounded-full">
             <Avatar className="h-10 w-10">
-              <AvatarImage src="" alt={profile.full_name} />
+              <AvatarImage src={profile.profile_picture_url || ""} alt={profile.full_name} />
               <AvatarFallback className="bg-primary text-primary-foreground">
                 {initials}
               </AvatarFallback>
@@ -123,7 +148,11 @@ export const ProfileDropdown = ({ user }: { user: User | null }) => {
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => setIsProfileOpen(true)}>
             <UserIcon className="mr-2 h-4 w-4" />
-            <span>Profile</span>
+            <span>View Profile</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleEditClick}>
+            <Edit className="mr-2 h-4 w-4" />
+            <span>Edit Profile</span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
@@ -135,39 +164,20 @@ export const ProfileDropdown = ({ user }: { user: User | null }) => {
 
       <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Profile Information</DialogTitle>
-          </DialogHeader>
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center space-x-4">
-                <Avatar className="h-16 w-16">
-                  <AvatarImage src="" alt={profile.full_name} />
-                  <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <CardTitle>{profile.full_name}</CardTitle>
-                  <p className="text-sm text-muted-foreground">{profile.email}</p>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <p className="text-sm font-medium mb-2">Roles</p>
-                <div className="flex flex-wrap gap-2">
-                  {roles.map((roleObj) => (
-                    <Badge key={roleObj.role} variant="secondary">
-                      {roleObj.role.charAt(0).toUpperCase() + roleObj.role.slice(1)}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <ProfileCard 
+            profile={profile} 
+            roles={roles.map(r => r.role)}
+            onEditClick={handleEditClick}
+          />
         </DialogContent>
       </Dialog>
+
+      <ProfileSetupDialog
+        open={isSetupOpen}
+        onOpenChange={setIsSetupOpen}
+        userId={user?.id || ""}
+        onComplete={handleSetupComplete}
+      />
     </>
   );
 };
