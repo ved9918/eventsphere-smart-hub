@@ -9,6 +9,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { User } from "@supabase/supabase-js";
 import { ProfileDropdown } from "@/components/ProfileDropdown";
+import { RegistrationDialog } from "@/components/RegistrationDialog";
+import { PaymentDialog } from "@/components/PaymentDialog";
+import { TicketConfirmationDialog } from "@/components/TicketConfirmationDialog";
 
 interface Event {
   id: string;
@@ -37,6 +40,18 @@ const Events = () => {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [registrations, setRegistrations] = useState<Set<string>>(new Set());
   const [profileId, setProfileId] = useState<string | null>(null);
+  
+  // Registration flow state
+  const [showRegistrationDialog, setShowRegistrationDialog] = useState(false);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [registrationData, setRegistrationData] = useState<{
+    ticketCount: number;
+    contactNumber: string;
+    specialRequest: string;
+  } | null>(null);
+  const [completedTicketCode, setCompletedTicketCode] = useState("");
 
   useEffect(() => {
     // Check auth status
@@ -138,10 +153,39 @@ const Events = () => {
   };
 
   const handleRegister = async (eventId: string) => {
-    if (!profileId) {
+    const event = events.find(e => e.id === eventId);
+    if (!event) return;
+    
+    setSelectedEvent(event);
+    setShowRegistrationDialog(true);
+  };
+
+  const handleRegistrationSubmit = (data: {
+    ticketCount: number;
+    contactNumber: string;
+    specialRequest: string;
+  }) => {
+    setRegistrationData(data);
+    setShowRegistrationDialog(false);
+    
+    // If event is free, skip payment and complete registration
+    if (!selectedEvent?.price || selectedEvent.price === 0) {
+      completeRegistration("not required", "FREE_EVENT");
+    } else {
+      setShowPaymentDialog(true);
+    }
+  };
+
+  const handlePaymentComplete = (paymentMethod: string, transactionId: string) => {
+    setShowPaymentDialog(false);
+    completeRegistration(paymentMethod, transactionId);
+  };
+
+  const completeRegistration = async (paymentMethod: string, transactionId: string) => {
+    if (!profileId || !selectedEvent || !registrationData) {
       toast({
         title: "Error",
-        description: "Profile not found. Please complete your profile first.",
+        description: "Missing registration information",
         variant: "destructive",
       });
       return;
@@ -156,20 +200,27 @@ const Events = () => {
       const { error } = await supabase
         .from('registrations')
         .insert({
-          event_id: eventId,
+          event_id: selectedEvent.id,
           attendee_id: profileId,
           ticket_code: ticketData,
-          payment_status: 'pending'
+          payment_status: selectedEvent.price > 0 ? 'success' : 'not required',
+          contact_number: registrationData.contactNumber,
+          ticket_count: registrationData.ticketCount,
+          special_request: registrationData.specialRequest || null,
+          payment_method: paymentMethod,
+          transaction_id: transactionId,
         });
 
       if (error) throw error;
 
-      toast({
-        title: "Successfully registered!",
-        description: "Check your dashboard for ticket details.",
-      });
+      setCompletedTicketCode(ticketData);
+      setRegistrations(prev => new Set(prev).add(selectedEvent.id));
+      setShowConfirmationDialog(true);
 
-      setRegistrations(prev => new Set(prev).add(eventId));
+      toast({
+        title: "Registration Successful!",
+        description: "Your ticket has been generated.",
+      });
     } catch (error: any) {
       toast({
         title: "Registration failed",
@@ -292,6 +343,38 @@ const Events = () => {
           </div>
         )}
       </div>
+
+      {/* Registration Flow Dialogs */}
+      {selectedEvent && (
+        <>
+          <RegistrationDialog
+            open={showRegistrationDialog}
+            onOpenChange={setShowRegistrationDialog}
+            eventTitle={selectedEvent.title}
+            availableSeats={selectedEvent.max_attendees}
+            onSubmit={handleRegistrationSubmit}
+          />
+
+          <PaymentDialog
+            open={showPaymentDialog}
+            onOpenChange={setShowPaymentDialog}
+            eventTitle={selectedEvent.title}
+            amount={selectedEvent.price}
+            ticketCount={registrationData?.ticketCount || 1}
+            onPaymentComplete={handlePaymentComplete}
+          />
+
+          <TicketConfirmationDialog
+            open={showConfirmationDialog}
+            onOpenChange={setShowConfirmationDialog}
+            eventTitle={selectedEvent.title}
+            eventDate={selectedEvent.date}
+            ticketCode={completedTicketCode}
+            ticketCount={registrationData?.ticketCount || 1}
+            userRole={userRole}
+          />
+        </>
+      )}
     </div>
   );
 };

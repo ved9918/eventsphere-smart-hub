@@ -124,27 +124,42 @@ export type Database = {
       registrations: {
         Row: {
           attendee_id: string
+          contact_number: string | null
           event_id: string
           id: string
+          payment_method: string | null
           payment_status: string
           registered_at: string | null
+          special_request: string | null
           ticket_code: string
+          ticket_count: number | null
+          transaction_id: string | null
         }
         Insert: {
           attendee_id: string
+          contact_number?: string | null
           event_id: string
           id?: string
+          payment_method?: string | null
           payment_status?: string
           registered_at?: string | null
+          special_request?: string | null
           ticket_code: string
+          ticket_count?: number | null
+          transaction_id?: string | null
         }
         Update: {
           attendee_id?: string
+          contact_number?: string | null
           event_id?: string
           id?: string
+          payment_method?: string | null
           payment_status?: string
           registered_at?: string | null
+          special_request?: string | null
           ticket_code?: string
+          ticket_count?: number | null
+          transaction_id?: string | null
         }
         Relationships: [
           {
