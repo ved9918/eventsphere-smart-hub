@@ -170,7 +170,7 @@ const Events = () => {
     
     // If event is free, skip payment and complete registration
     if (!selectedEvent?.price || selectedEvent.price === 0) {
-      completeRegistration("not required", "FREE_EVENT");
+      completeRegistration("N/A", "FREE_EVENT");
     } else {
       setShowPaymentDialog(true);
     }
@@ -203,7 +203,7 @@ const Events = () => {
           event_id: selectedEvent.id,
           attendee_id: profileId,
           ticket_code: ticketData,
-          payment_status: selectedEvent.price > 0 ? 'success' : 'not required',
+          payment_status: selectedEvent.price > 0 ? 'completed' : 'pending',
           contact_number: registrationData.contactNumber,
           ticket_count: registrationData.ticketCount,
           special_request: registrationData.specialRequest || null,
