@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       events: {
         Row: {
+          allow_cancellation: boolean | null
           approval_status: string
           category: string
           created_at: string | null
@@ -26,12 +27,15 @@ export type Database = {
           image_url: string | null
           location: string
           max_attendees: number
+          max_tickets_per_user: number | null
           price: number
+          registration_deadline: string | null
           status: string
           title: string
           updated_at: string | null
         }
         Insert: {
+          allow_cancellation?: boolean | null
           approval_status?: string
           category: string
           created_at?: string | null
@@ -42,12 +46,15 @@ export type Database = {
           image_url?: string | null
           location: string
           max_attendees: number
+          max_tickets_per_user?: number | null
           price?: number
+          registration_deadline?: string | null
           status?: string
           title: string
           updated_at?: string | null
         }
         Update: {
+          allow_cancellation?: boolean | null
           approval_status?: string
           category?: string
           created_at?: string | null
@@ -58,7 +65,9 @@ export type Database = {
           image_url?: string | null
           location?: string
           max_attendees?: number
+          max_tickets_per_user?: number | null
           price?: number
+          registration_deadline?: string | null
           status?: string
           title?: string
           updated_at?: string | null

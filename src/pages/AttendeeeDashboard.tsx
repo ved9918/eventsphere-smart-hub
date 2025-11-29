@@ -13,11 +13,26 @@ import { supabase } from "@/integrations/supabase/client";
 import { User as SupabaseUser } from "@supabase/supabase-js";
 import { ProfileDropdown } from "@/components/ProfileDropdown";
 
+interface RegisteredEvent {
+  id: string;
+  ticket_code: string;
+  event_id: string;
+  ticket_count: number;
+  payment_status: string;
+  events: {
+    title: string;
+    date: string;
+    location: string;
+  };
+}
+
 const AttendeeeDashboard = () => {
   const [user, setUser] = useState<SupabaseUser | null>(null);
-  const [profile, setProfile] = useState<{ full_name: string; email: string } | null>(null);
-  const [selectedTicket, setSelectedTicket] = useState<typeof registeredEvents[0] | null>(null);
+  const [profile, setProfile] = useState<{ full_name: string; email: string; id: string } | null>(null);
+  const [registeredEvents, setRegisteredEvents] = useState<RegisteredEvent[]>([]);
+  const [selectedTicket, setSelectedTicket] = useState<RegisteredEvent | null>(null);
   const [isTicketDialogOpen, setIsTicketDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -40,29 +55,44 @@ const AttendeeeDashboard = () => {
   const fetchUserProfile = async (userId: string) => {
     const { data } = await supabase
       .from('profiles')
-      .select('full_name, email')
+      .select('id, full_name, email')
       .eq('user_id', userId)
       .single();
     
     if (data) {
       setProfile(data);
+      fetchRegisteredEvents(data.id);
     }
   };
 
-  const registeredEvents = [
-    {
-      title: "Tech Innovation Summit 2024",
-      date: "March 15, 2024",
-      status: "Upcoming",
-      ticketId: "TKT-001234",
-    },
-    {
-      title: "Digital Marketing Workshop",
-      date: "March 20, 2024",
-      status: "Upcoming",
-      ticketId: "TKT-001235",
-    },
-  ];
+  const fetchRegisteredEvents = async (profileId: string) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('registrations')
+        .select(`
+          id,
+          ticket_code,
+          event_id,
+          ticket_count,
+          payment_status,
+          events (
+            title,
+            date,
+            location
+          )
+        `)
+        .eq('attendee_id', profileId)
+        .order('registered_at', { ascending: false });
+
+      if (error) throw error;
+      setRegisteredEvents(data || []);
+    } catch (error) {
+      console.error('Error fetching registered events:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const recommendedEvents = [
     {
@@ -123,37 +153,56 @@ const AttendeeeDashboard = () => {
                 <CardDescription>Events you've registered for</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {registeredEvents.map((event) => (
-                    <div
-                      key={event.ticketId}
-                      className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"
-                    >
-                      <div className="space-y-1">
-                        <h3 className="font-semibold">{event.title}</h3>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="h-4 w-4" />
-                            {event.date}
-                          </span>
-                          <Badge variant="outline">{event.status}</Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground">Ticket ID: {event.ticketId}</p>
-                      </div>
-                       <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => {
-                          setSelectedTicket(event);
-                          setIsTicketDialogOpen(true);
-                        }}
+                {loading ? (
+                  <div className="text-center py-8">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4"></div>
+                    <p className="text-muted-foreground">Loading your events...</p>
+                  </div>
+                ) : registeredEvents.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No registered events yet. Browse events to get started!
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {registeredEvents.map((registration) => (
+                      <div
+                        key={registration.id}
+                        className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"
                       >
-                        <Download className="mr-2 h-4 w-4" />
-                        View Ticket
-                      </Button>
-                    </div>
-                  ))}
-                </div>
+                        <div className="space-y-1">
+                          <h3 className="font-semibold">{registration.events.title}</h3>
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Calendar className="h-4 w-4" />
+                              {new Date(registration.events.date).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              })}
+                            </span>
+                            <Badge variant={registration.payment_status === 'completed' ? 'default' : 'secondary'}>
+                              {registration.payment_status}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Ticket ID: {registration.ticket_code} | Seats: {registration.ticket_count}
+                          </p>
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedTicket(registration);
+                            setIsTicketDialogOpen(true);
+                          }}
+                        >
+                          <Download className="mr-2 h-4 w-4" />
+                          View Ticket
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -198,13 +247,17 @@ const AttendeeeDashboard = () => {
             </DialogHeader>
             {selectedTicket && (
               <TicketQRCode
-                eventTitle={selectedTicket.title}
-                ticketCode={selectedTicket.ticketId}
-                eventDate={selectedTicket.date}
+                eventTitle={selectedTicket.events.title}
+                ticketCode={selectedTicket.ticket_code}
+                eventDate={new Date(selectedTicket.events.date).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}
                 qrData={generateTicketQRData(
-                  selectedTicket.title,
-                  selectedTicket.ticketId,
-                  selectedTicket.date
+                  selectedTicket.events.title,
+                  selectedTicket.ticket_code,
+                  new Date(selectedTicket.events.date).toLocaleDateString()
                 )}
               />
             )}
