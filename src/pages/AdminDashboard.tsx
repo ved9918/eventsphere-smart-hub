@@ -25,6 +25,7 @@ interface Analytics {
   total_users: number;
   approved_events: number;
   pending_events: number;
+  rejected_events?: number;
   total_registrations: number;
   active_attendees: number;
   total_revenue: number;
@@ -80,8 +81,18 @@ const AdminDashboard = () => {
         .rpc('get_admin_analytics');
 
       if (analyticsError) throw analyticsError;
+      
+      // Fetch rejected events count
+      const { count: rejectedCount } = await supabase
+        .from('events')
+        .select('*', { count: 'exact', head: true })
+        .eq('approval_status', 'rejected');
+
       if (analyticsData && analyticsData.length > 0) {
-        setAnalytics(analyticsData[0]);
+        setAnalytics({
+          ...analyticsData[0],
+          rejected_events: rejectedCount || 0
+        });
       }
 
       // Fetch pending events
@@ -167,7 +178,8 @@ const AdminDashboard = () => {
   const eventStatusData = analytics ? [
     { name: 'Approved', value: analytics.approved_events, color: '#10b981' },
     { name: 'Pending', value: analytics.pending_events, color: '#f59e0b' },
-  ] : [];
+    { name: 'Rejected', value: analytics.rejected_events || 0, color: '#ef4444' },
+  ].filter(item => item.value > 0) : [];
 
   const registrationData = analytics ? [
     { name: 'Total Registrations', value: analytics.total_registrations },
