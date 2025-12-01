@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { EventImageUpload } from "@/components/EventImageUpload";
 import { Plus, Users, Calendar, Download, Clock, TrendingUp, CheckCircle, XCircle, AlertCircle, Ticket, DollarSign, Settings } from "lucide-react";
@@ -31,6 +32,8 @@ interface HostEvent {
   registration_deadline: string | null;
   max_tickets_per_user: number;
   allow_cancellation: boolean;
+  event_type: string;
+  team_size: number | null;
   registrations: Array<{
     id: string;
     ticket_code: string;
@@ -77,6 +80,8 @@ const HostDashboard = () => {
     registrationDeadline: "",
     maxTicketsPerUser: "1",
     allowCancellation: false,
+    eventType: "individual",
+    teamSize: "",
   });
 
   useEffect(() => {
@@ -127,6 +132,8 @@ const HostDashboard = () => {
           registration_deadline,
           max_tickets_per_user,
           allow_cancellation,
+          event_type,
+          team_size,
           registrations (
             id,
             ticket_code,
@@ -188,6 +195,8 @@ const HostDashboard = () => {
         registration_deadline: newEvent.registrationDeadline || null,
         max_tickets_per_user: parseInt(newEvent.maxTicketsPerUser),
         allow_cancellation: newEvent.allowCancellation,
+        event_type: newEvent.eventType,
+        team_size: newEvent.eventType === 'team' ? parseInt(newEvent.teamSize) : null,
       });
 
       if (error) throw error;
@@ -209,6 +218,8 @@ const HostDashboard = () => {
         registrationDeadline: "",
         maxTicketsPerUser: "1",
         allowCancellation: false,
+        eventType: "individual",
+        teamSize: "",
       });
       if (profile) fetchHostEvents(profile.id);
     } catch (error: any) {
@@ -310,7 +321,7 @@ const HostDashboard = () => {
     if (isPast) return { label: 'Completed', variant: 'outline' as const };
     if (event.status === 'active' && event.approval_status === 'approved') {
       if (isFull) return { label: 'Event Full', variant: 'destructive' as const };
-      return { label: 'Active', variant: 'default' as const };
+      return { label: 'Upcoming', variant: 'default' as const };
     }
     return { label: 'Inactive', variant: 'secondary' as const };
   };
@@ -520,6 +531,41 @@ const HostDashboard = () => {
                     onCheckedChange={(checked) => setNewEvent({ ...newEvent, allowCancellation: checked })}
                   />
                   <Label htmlFor="allowCancellation">Allow attendees to cancel registration</Label>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="eventType">Event Type</Label>
+                    <Select
+                      value={newEvent.eventType}
+                      onValueChange={(value) => setNewEvent({ ...newEvent, eventType: value, teamSize: value === 'individual' ? "" : newEvent.teamSize })}
+                    >
+                      <SelectTrigger id="eventType">
+                        <SelectValue placeholder="Select event type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="individual">Individual</SelectItem>
+                        <SelectItem value="team">Team</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {newEvent.eventType === 'team' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="teamSize">Team Size</Label>
+                      <Input
+                        id="teamSize"
+                        type="number"
+                        min="2"
+                        value={newEvent.teamSize}
+                        onChange={(e) => setNewEvent({ ...newEvent, teamSize: e.target.value })}
+                        placeholder="e.g., 5"
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        Number of members per team (will auto-fill ticket count during registration)
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <Button onClick={handleCreateEvent} className="w-full">

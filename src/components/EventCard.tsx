@@ -32,11 +32,18 @@ export const EventCard = ({
   isRegistered = false,
   onRegister,
 }: EventCardProps) => {
+  const eventDate = new Date(date);
+  const isPast = eventDate < new Date();
+  
   return (
     <Card className="overflow-hidden transition-all hover:shadow-lg flex flex-col h-full">
       <CardHeader>
-        <div className="flex items-start justify-between">
-          <Badge variant="secondary" className="mb-2">{category}</Badge>
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="secondary">{category}</Badge>
+            {isPast && <Badge variant="outline">Completed</Badge>}
+            {!isPast && <Badge variant="default">Upcoming</Badge>}
+          </div>
           {price > 0 ? (
             <span className="font-semibold">₹{price}</span>
           ) : (
@@ -67,14 +74,24 @@ export const EventCard = ({
       </CardContent>
       
       <CardFooter className="mt-auto">
-        <Button 
-          className="w-full" 
-          onClick={onRegister}
-          disabled={isRegistered}
-          variant={isRegistered ? "secondary" : "default"}
-        >
-          {isRegistered ? "Already Registered" : "Register Now"}
-        </Button>
+        {onRegister ? (
+          <Button 
+            className="w-full" 
+            onClick={onRegister}
+            disabled={isRegistered}
+            variant={isRegistered ? "secondary" : "default"}
+          >
+            {isRegistered ? "Already Registered" : "Register Now"}
+          </Button>
+        ) : (
+          <Button 
+            className="w-full" 
+            disabled
+            variant="secondary"
+          >
+            Registration Not Available
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );

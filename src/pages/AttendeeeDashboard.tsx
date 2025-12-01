@@ -164,43 +164,55 @@ const AttendeeeDashboard = () => {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {registeredEvents.map((registration) => (
-                      <div
-                        key={registration.id}
-                        className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"
-                      >
-                        <div className="space-y-1">
-                          <h3 className="font-semibold">{registration.events.title}</h3>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                              <Calendar className="h-4 w-4" />
-                              {new Date(registration.events.date).toLocaleDateString('en-US', {
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric'
-                              })}
-                            </span>
-                            <Badge variant={registration.payment_status === 'completed' ? 'default' : 'secondary'}>
-                              {registration.payment_status}
-                            </Badge>
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            Ticket ID: {registration.ticket_code} | Seats: {registration.ticket_count}
-                          </p>
-                        </div>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => {
-                            setSelectedTicket(registration);
-                            setIsTicketDialogOpen(true);
-                          }}
+                    {registeredEvents.map((registration) => {
+                      const eventDate = new Date(registration.events.date);
+                      const isPast = eventDate < new Date();
+                      
+                      return (
+                        <div
+                          key={registration.id}
+                          className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"
                         >
-                          <Download className="mr-2 h-4 w-4" />
-                          View Ticket
-                        </Button>
-                      </div>
-                    ))}
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-semibold">{registration.events.title}</h3>
+                              {isPast ? (
+                                <Badge variant="outline">Completed</Badge>
+                              ) : (
+                                <Badge variant="default">Upcoming</Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <Calendar className="h-4 w-4" />
+                                {new Date(registration.events.date).toLocaleDateString('en-US', {
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric'
+                                })}
+                              </span>
+                              <Badge variant={registration.payment_status === 'completed' ? 'default' : 'secondary'}>
+                                {registration.payment_status}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Ticket ID: {registration.ticket_code} | Seats: {registration.ticket_count}
+                            </p>
+                          </div>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              setSelectedTicket(registration);
+                              setIsTicketDialogOpen(true);
+                            }}
+                          >
+                            <Download className="mr-2 h-4 w-4" />
+                            View Ticket
+                          </Button>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>

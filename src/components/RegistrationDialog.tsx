@@ -11,6 +11,8 @@ interface RegistrationDialogProps {
   onOpenChange: (open: boolean) => void;
   eventTitle: string;
   availableSeats: number;
+  eventType?: string;
+  teamSize?: number | null;
   onSubmit: (data: {
     ticketCount: number;
     contactNumber: string;
@@ -23,9 +25,12 @@ export const RegistrationDialog = ({
   onOpenChange,
   eventTitle,
   availableSeats,
+  eventType = "individual",
+  teamSize = null,
   onSubmit,
 }: RegistrationDialogProps) => {
-  const [ticketCount, setTicketCount] = useState(1);
+  const isTeamEvent = eventType === 'team' && teamSize !== null && teamSize > 0;
+  const [ticketCount, setTicketCount] = useState(isTeamEvent && teamSize ? teamSize : 1);
   const [contactNumber, setContactNumber] = useState("");
   const [specialRequest, setSpecialRequest] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
@@ -78,12 +83,15 @@ export const RegistrationDialog = ({
               max={availableSeats}
               value={ticketCount}
               onChange={(e) => setTicketCount(parseInt(e.target.value) || 1)}
+              disabled={isTeamEvent}
             />
             {errors.ticketCount && (
               <p className="text-sm text-destructive">{errors.ticketCount}</p>
             )}
             <p className="text-sm text-muted-foreground">
-              Available seats: {availableSeats}
+              {isTeamEvent 
+                ? `Team event: ${teamSize} members per team (fixed)` 
+                : `Available seats: ${availableSeats}`}
             </p>
           </div>
 
