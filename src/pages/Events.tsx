@@ -23,6 +23,8 @@ interface Event {
   max_attendees: number;
   price: number;
   image_url?: string;
+  event_type: string;
+  team_size: number | null;
 }
 
 interface Registration {
@@ -337,7 +339,7 @@ const Events = () => {
                 maxAttendees={event.max_attendees}
                 price={event.price}
                 isRegistered={registrations.has(event.id)}
-                onRegister={() => handleRegister(event.id)}
+                onRegister={userRole === "attendee" ? () => handleRegister(event.id) : undefined}
               />
             ))}
           </div>
@@ -352,6 +354,8 @@ const Events = () => {
             onOpenChange={setShowRegistrationDialog}
             eventTitle={selectedEvent.title}
             availableSeats={selectedEvent.max_attendees}
+            eventType={selectedEvent.event_type}
+            teamSize={selectedEvent.team_size}
             onSubmit={handleRegistrationSubmit}
           />
 

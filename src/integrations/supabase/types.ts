@@ -22,6 +22,7 @@ export type Database = {
           created_at: string | null
           date: string
           description: string | null
+          event_type: string
           host_id: string
           id: string
           image_url: string | null
@@ -31,6 +32,7 @@ export type Database = {
           price: number
           registration_deadline: string | null
           status: string
+          team_size: number | null
           title: string
           updated_at: string | null
         }
@@ -41,6 +43,7 @@ export type Database = {
           created_at?: string | null
           date: string
           description?: string | null
+          event_type?: string
           host_id: string
           id?: string
           image_url?: string | null
@@ -50,6 +53,7 @@ export type Database = {
           price?: number
           registration_deadline?: string | null
           status?: string
+          team_size?: number | null
           title: string
           updated_at?: string | null
         }
@@ -60,6 +64,7 @@ export type Database = {
           created_at?: string | null
           date?: string
           description?: string | null
+          event_type?: string
           host_id?: string
           id?: string
           image_url?: string | null
@@ -69,6 +74,7 @@ export type Database = {
           price?: number
           registration_deadline?: string | null
           status?: string
+          team_size?: number | null
           title?: string
           updated_at?: string | null
         }
