@@ -191,9 +191,6 @@ const AttendeeeDashboard = () => {
                                   day: 'numeric'
                                 })}
                               </span>
-                              <Badge variant={registration.payment_status === 'completed' ? 'default' : 'secondary'}>
-                                {registration.payment_status}
-                              </Badge>
                             </div>
                             <p className="text-xs text-muted-foreground">
                               Ticket ID: {registration.ticket_code} | Seats: {registration.ticket_count}
