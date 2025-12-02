@@ -163,7 +163,7 @@ export const ProfileDropdown = ({ user }: { user: User | null }) => {
       </DropdownMenu>
 
       <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md flex items-center justify-center">
           <ProfileCard 
             profile={profile} 
             roles={roles.map(r => r.role)}

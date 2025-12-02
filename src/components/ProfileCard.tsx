@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,8 +28,8 @@ export const ProfileCard = ({ profile, roles, eventsCount = 0, onEditClick }: Pr
     .toUpperCase();
 
   return (
-    <Card className="max-w-md mx-auto rounded-2xl">
-      <CardHeader className="relative pb-3">
+    <div className="w-full">
+      <div className="relative pb-3 flex flex-col space-y-1.5">
         <Button
           variant="ghost"
           size="sm"
@@ -60,9 +60,9 @@ export const ProfileCard = ({ profile, roles, eventsCount = 0, onEditClick }: Pr
             ))}
           </div>
         </div>
-      </CardHeader>
+      </div>
       
-      <CardContent className="space-y-4">
+      <div className="space-y-4 pt-4">
         {profile.role_type && (
           <div className="flex items-center gap-3 text-sm">
             <Briefcase className="w-4 h-4 text-muted-foreground" />
@@ -105,7 +105,7 @@ export const ProfileCard = ({ profile, roles, eventsCount = 0, onEditClick }: Pr
             <span className="text-muted-foreground">Events Joined</span>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
