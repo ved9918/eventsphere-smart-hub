@@ -28,7 +28,7 @@ export const ProfileCard = ({ profile, roles, eventsCount = 0, onEditClick }: Pr
     .toUpperCase();
 
   return (
-    <Card className="max-w-md mx-auto">
+    <Card className="max-w-md mx-auto rounded-2xl">
       <CardHeader className="relative pb-3">
         <Button
           variant="ghost"

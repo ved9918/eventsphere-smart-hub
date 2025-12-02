@@ -15,6 +15,7 @@ interface EventCardProps {
   maxAttendees?: number;
   price?: number;
   isRegistered?: boolean;
+  imageUrl?: string;
   onRegister?: () => void;
 }
 
@@ -30,6 +31,7 @@ export const EventCard = ({
   maxAttendees = 100,
   price = 0,
   isRegistered = false,
+  imageUrl,
   onRegister,
 }: EventCardProps) => {
   const eventDate = new Date(date);
@@ -37,6 +39,15 @@ export const EventCard = ({
   
   return (
     <Card className="overflow-hidden transition-all hover:shadow-lg flex flex-col h-full">
+      {imageUrl && (
+        <div className="relative w-full h-40 overflow-hidden">
+          <img 
+            src={imageUrl} 
+            alt={title}
+            className="w-full h-full object-cover"
+          />
+        </div>
+      )}
       <CardHeader>
         <div className="flex items-start justify-between gap-2">
           <div className="flex flex-wrap gap-2">

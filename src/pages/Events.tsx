@@ -339,6 +339,7 @@ const Events = () => {
                 maxAttendees={event.max_attendees}
                 price={event.price}
                 isRegistered={registrations.has(event.id)}
+                imageUrl={event.image_url}
                 onRegister={userRole === "attendee" ? () => handleRegister(event.id) : undefined}
               />
             ))}
