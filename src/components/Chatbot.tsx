@@ -67,7 +67,7 @@ export const Chatbot = () => {
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-24 right-6 w-96 h-[500px] bg-card border rounded-lg shadow-xl z-50 flex flex-col">
+        <div className="fixed bottom-24 right-6 w-96 h-[500px] bg-card border rounded-2xl shadow-xl z-50 flex flex-col overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b bg-muted">
             <div className="flex items-center gap-2">
@@ -95,15 +95,31 @@ export const Chatbot = () => {
                     message.isBot ? "justify-start" : "justify-end"
                   )}
                 >
-                  <div
-                    className={cn(
-                      "max-w-[80%] rounded-lg p-3 whitespace-pre-line",
-                      message.isBot
-                        ? "bg-muted text-foreground"
-                        : "bg-primary text-primary-foreground"
-                    )}
-                  >
-                    {message.text}
+                  <div className="relative">
+                    <div
+                      className={cn(
+                        "max-w-[80%] rounded-2xl px-4 py-3 whitespace-pre-line shadow-sm",
+                        message.isBot
+                          ? "bg-muted text-foreground rounded-bl-sm"
+                          : "bg-primary text-primary-foreground rounded-br-sm"
+                      )}
+                    >
+                      {message.text}
+                    </div>
+                    {/* Speech bubble tail */}
+                    <div
+                      className={cn(
+                        "absolute bottom-0 w-3 h-3",
+                        message.isBot
+                          ? "left-0 -translate-x-1 bg-muted"
+                          : "right-0 translate-x-1 bg-primary"
+                      )}
+                      style={{
+                        clipPath: message.isBot
+                          ? "polygon(100% 0, 100% 100%, 0 100%)"
+                          : "polygon(0 0, 100% 100%, 0 100%)"
+                      }}
+                    />
                   </div>
                 </div>
               ))}
