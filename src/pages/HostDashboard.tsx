@@ -43,7 +43,7 @@ interface HostEvent {
     profiles: {
       full_name: string;
       email: string;
-    };
+    } | null;
   }>;
 }
 
@@ -244,8 +244,8 @@ const HostDashboard = () => {
     const csvContent = [
       ['Name', 'Email', 'Seats', 'Payment Status', 'Contact Number', 'Ticket Code'].join(','),
       ...event.registrations.map(reg => [
-        reg.profiles.full_name,
-        reg.profiles.email,
+        reg.profiles?.full_name || 'Unknown',
+        reg.profiles?.email || 'N/A',
         reg.ticket_count,
         reg.payment_status,
         reg.contact_number || 'N/A',
@@ -731,8 +731,8 @@ const HostDashboard = () => {
             {selectedEvent?.registrations?.map((reg) => (
               <div key={reg.id} className="flex items-center justify-between border-b pb-3 last:border-0">
                 <div className="space-y-1">
-                  <p className="font-medium">{reg.profiles.full_name}</p>
-                  <p className="text-sm text-muted-foreground">{reg.profiles.email}</p>
+                  <p className="font-medium">{reg.profiles?.full_name || 'Unknown'}</p>
+                  <p className="text-sm text-muted-foreground">{reg.profiles?.email || 'N/A'}</p>
                   <div className="flex gap-2 text-xs text-muted-foreground">
                     <span>Seats: {reg.ticket_count}</span>
                     <span>•</span>
