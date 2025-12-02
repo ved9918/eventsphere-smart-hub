@@ -39,6 +39,7 @@ export const ProfileDropdown = ({ user }: { user: User | null }) => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [roles, setRoles] = useState<UserRole[]>([]);
+  const [eventsCount, setEventsCount] = useState(0);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSetupOpen, setIsSetupOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -65,6 +66,16 @@ export const ProfileDropdown = ({ user }: { user: User | null }) => {
     }
     
     setProfile(data);
+    
+    // Fetch events count
+    if (data) {
+      const { count } = await supabase
+        .from('registrations')
+        .select('*', { count: 'exact', head: true })
+        .eq('attendee_id', data.id);
+      
+      setEventsCount(count || 0);
+    }
     
     // Show setup dialog if profile is not complete
     if (data && !data.profile_completed) {
@@ -167,6 +178,7 @@ export const ProfileDropdown = ({ user }: { user: User | null }) => {
           <ProfileCard 
             profile={profile} 
             roles={roles.map(r => r.role)}
+            eventsCount={eventsCount}
             onEditClick={handleEditClick}
           />
         </DialogContent>
