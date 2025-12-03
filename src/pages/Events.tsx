@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Navigate, Link } from "react-router-dom";
 import { EventCard } from "@/components/EventCard";
+import { EventCardSkeleton } from "@/components/EventCardSkeleton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -313,11 +314,10 @@ const Events = () => {
       
       <div className="container py-12">
         {loading ? (
-          <div className="flex justify-center items-center py-20">
-            <div className="text-center">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Loading events...</p>
-            </div>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {[...Array(6)].map((_, i) => (
+              <EventCardSkeleton key={i} />
+            ))}
           </div>
         ) : filteredEvents.length === 0 ? (
           <div className="text-center py-20">
