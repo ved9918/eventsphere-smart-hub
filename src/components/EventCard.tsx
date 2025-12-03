@@ -38,13 +38,13 @@ export const EventCard = ({
   const isPast = eventDate < new Date();
   
   return (
-    <Card className="overflow-hidden transition-all hover:shadow-lg flex flex-col h-full">
+    <Card className="overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col h-full">
       {imageUrl && (
         <div className="relative w-full h-40 overflow-hidden">
           <img 
             src={imageUrl} 
             alt={title}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
           />
         </div>
       )}
